@@ -1,12 +1,10 @@
 package com.example.TicketingSystem.controllers;
-
 import com.example.TicketingSystem.models.Tickets;
 import com.example.TicketingSystem.services.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -52,7 +50,6 @@ public class TicketController {
         if (tickets.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-
         return ResponseEntity.ok(tickets);
     }
 }
