@@ -1,39 +1,57 @@
 package com.example.TicketingSystem.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Ticket_Comments")
+@Table(name = "ticket_comments")
 @Getter
 @Setter
 @NoArgsConstructor
 public class TicketComments {
-//id requestid
+
     @Id
-    @Column(name = "id", length = 100, nullable = false)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Auto-generate primary key
+    @Column(name = "comment_id", updatable = false, nullable = false)
+    private Long commentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", nullable = false)
-    private Tickets ticket;
+    @NotBlank(message = "Comment is required")
+    @Column(name = "comment", length = 1000, nullable = false)
+    private String comment;
 
-    @Column(name = "comments", length = 500)
-    private String comments;
+    @Column(name = "commented_by", length = 100, nullable = false)
+    private String commentedBy;
 
-    @Column(name = "created_by", length = 100)
-    private String createdBy;
+    @Column(name = "commented_date", nullable = false, updatable = false)
+    private LocalDateTime commentedDate;
 
-    @Column(name = "created_date", nullable = false)
-    private LocalDateTime createdDate;
+    @Column(name = "edited_date")
+    private LocalDateTime editedDate;
 
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
+    @Column(name = "is_edited", nullable = false)
+    private boolean isEdited = false;
 
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
+    @ManyToOne // One ticket can have multiple comments
+    @JoinColumn(name = "ticket_id", referencedColumnName = "ticket_id", nullable = false)
+    private Tickets ticketId;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.commentedDate == null) {
+            this.commentedDate = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (this.isEdited) {
+            this.editedDate = LocalDateTime.now();
+        }
+    }
+
+   
 }

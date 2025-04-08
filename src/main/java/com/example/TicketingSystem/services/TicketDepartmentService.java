@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TicketDepartmentService {
@@ -18,6 +19,13 @@ public class TicketDepartmentService {
     // ✅ Fetch all departments (all users in departments)
     public List<TicketDepartment> getAllDepartments() {
         return ticketDepartmentRepository.findAll();
+    }
+    public List<String> getUniqueDepartments() {
+        return ticketDepartmentRepository.findAll()
+                .stream()
+                .map(TicketDepartment::getDepartment) // Extract department name
+                .distinct() // Ensure uniqueness
+                .collect(Collectors.toList());
     }
 
     // ✅ Fetch users by department name
@@ -38,6 +46,7 @@ public class TicketDepartmentService {
     }
 
     // ✅ Update user active/inactive status
+
     public Optional<TicketDepartment> updateUserStatus(String id, Boolean isActive) {
         Optional<TicketDepartment> departmentUser = ticketDepartmentRepository.findById(id);
 
@@ -48,5 +57,17 @@ public class TicketDepartmentService {
         }
 
         return departmentUser;
+    }
+
+    public Optional<TicketDepartment> updateUserStatusByEmail(String email, Boolean isActive) {
+        Optional<TicketDepartment> userOptional = ticketDepartmentRepository.findByEmailId(email);
+
+        if (userOptional.isPresent()) {
+            TicketDepartment user = userOptional.get();
+            user.setIsActive(isActive);
+            ticketDepartmentRepository.save(user);
+        }
+
+        return userOptional;
     }
 }
