@@ -42,6 +42,7 @@ public class TicketController {
     private Email2Service email2Service;
     @Autowired
     private Email4Service email4Service;
+    @Autowired
     private NotificationService notificationService;
 
 
@@ -68,18 +69,18 @@ public class TicketController {
 
     @PostMapping
     public ResponseEntity<Tickets> createTicket(@Valid @RequestBody Tickets ticket) {
+
         Tickets savedTicket = ticketService.createTicket(ticket);
         DateTimeFormatter createdDateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         DateTimeFormatter dueDateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String ticketLink = "http://localhost:5173/ticket/" +savedTicket.getTicketId();
 
         // Format the createdDate and dueDate
         String formattedCreatedDate = savedTicket.getCreatedDate().format(createdDateFormatter);
         String formattedDueDate = savedTicket.getDueDate().format(dueDateFormatter);
-        ticket.setUpdatedBy(ticket.getCreatedBy());
-
         emailService.sendTicketEmail(
                 savedTicket.getCreatedBy(),     // Recipient's email
-                savedTicket.getTicketId(),       // Ticket ID
+                savedTicket.getTicketId(),     // Ticket ID
                 savedTicket.getTitle(),
                 savedTicket.getDescription(),
                 formattedCreatedDate,
@@ -88,31 +89,43 @@ public class TicketController {
                 savedTicket.getStatus(),
                 true,   "New Ticket Created"
         );
+        notificationService.sendNotification(savedTicket.getCreatedBy(),
+                "You Created  " + savedTicket.getTicketId()+ " new request"
+        );
+
         // ✅ Find active users in the creator's department
         String department = ticket.getDepartment();
         List<TicketDepartment> activeDepartmentUsers = ticketDepartmentRepository.findByDepartment(department)
                 .stream()
                 .filter(TicketDepartment::getIsActive) // Ensure only active users are selected
+
+                // Exclude the creator
                 .toList();
 
         // ✅ Send email to all active department members
         for (TicketDepartment member : activeDepartmentUsers) {
-            emailService.sendTicketEmail(
-                    member.getEmailId(), // Send email to department members
-                    savedTicket.getTicketId(),
-                    savedTicket.getTitle(),
-                    savedTicket.getDescription(),
-                    formattedCreatedDate,
-                    savedTicket.getPriority(),
-                    formattedDueDate,
-                    savedTicket.getStatus(),
-                    false,"New Ticket in Department"
-            );
-        }
+            if (!member.getEmailId().equals(savedTicket.getCreatedBy())) {
+
+                emailService.sendTicketEmail(
+                        member.getEmailId(), // Send email to department members
+                        savedTicket.getTicketId(),
+                        savedTicket.getTitle(),
+                        savedTicket.getDescription(),
+                        formattedCreatedDate,
+                        savedTicket.getPriority(),
+                        formattedDueDate,
+                        savedTicket.getStatus(),
+                        false,
+                        "New Ticket in Department"
+                );
+                notificationService.sendNotification(member.getEmailId(),
+                        "A new ticket (ID: " + savedTicket.getTicketId() + ") has been created in your department."
+                );
+            }
+        } // Send notification to department members
 
         return ResponseEntity.ok(savedTicket);
     }
-
 
 
     @Operation(summary = "Get Tickets by Creator", description = "Retrieve all tickets created by a specific user.")
